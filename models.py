@@ -154,25 +154,22 @@ class Xception(nn.Module):
     x = self.out(x)
     return x
 
-class Conv_bn(nn.Module):
-  def __init__(self, in_channels, out_channels,ks = 3, **kwargs):
-    super(Conv_bn,self).__init__()
-    self.conv = nn.Conv2d(in_channels,out_channels,ks,padding=int((ks-1)/2),**kwargs)
-    self.batch_norm = nn.BatchNorm2d(out_channels)
-    self.relu = nn.ReLU()
-  def forward(self,x):
-    return self.relu(self.batch_norm(self.conv(x)))
+
 
 class SimpleConvModel(nn.Module):
   def __init__(self):
     super(SimpleConvModel, self).__init__()
     self.features = nn.Sequential(OrderedDict([
-            ('conv0', Conv_bn(3,8)),
-            ('conv1', Conv_bn(8,16)),
+            ('conv0', conv_bn(3,8)),
+            ('relu0', nn.ReLU()),
+            ('conv1', conv_bn(8,16)),
+            ('relu1', nn.ReLU()),
             ('pool0', nn.AvgPool2d(kernel_size=2, stride=2)),
-            ('conv2', Conv_bn(16,32)),
+            ('conv2', conv_bn(16,32)),
+            ('relu2', nn.ReLU()),
             ('pool1', nn.AvgPool2d(kernel_size=2, stride=2)),
-            ('conv3', Conv_bn(32,64)),
+            ('conv3', conv_bn(32,64)),
+            ('relu3', nn.ReLU()),
             ]))
     self.dropout = nn.Dropout(0.5)
     self.classify = nn.Linear(64,1)
