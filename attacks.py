@@ -135,77 +135,76 @@ def universal_attack(model, inputs, labels, eps = 0.12,alpha=0.01, iters = 100):
 #         decision = (model(mid_img)>0.5)==label
 
 def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25, iters=100 ):
-  model.eval()
-  criterion = torch.nn.BCELoss()
-  input_var = inputs
-  for i in range(iters):
-    est = torch.zeros(input_var.shape).to(inputs.device)
+    model.eval()
+    criterion = torch.nn.BCELoss()
+    input_var = inputs
+    for i in range(iters):
+        est = torch.zeros(input_var.shape).to(inputs.device)
 
-    outputs = model(input_var)
-    #if all predicts are wrong: stop
-    inverse_pred = outputs.sigmoid() < 0.5
+        outputs = model(input_var)
+        #if all predicts are wrong: stop
+        inverse_pred = outputs.sigmoid() < 0.5
 
-    if torch.all(torch.eq(inverse_pred,labels)):
+        if torch.all(torch.eq(inverse_pred,labels)):
 
-      return inputs
+            return inputs
 
-    #estimate the gradient
-    for j in range(n):
-      r = torch.randn(input_var.shape).to(inputs.device)
-      out1 = criterion(model(input_var + r*var).sigmoid(),labels).to(inputs.device)
-      out2 = criterion(model(input_var - r*var).sigmoid(),labels).to(inputs.device)
-      est += (r*out1).detach()
-      est -= (r*out2).detach()
-    #update input
-    input_var = input_var + alpha*est.sign()
-    input_var = clipping(input_var, inputs, eps)
+        #estimate the gradient
+        for j in range(n):
+            r = torch.randn(input_var.shape).to(inputs.device)
+            out1 = criterion(model(input_var + r*var).sigmoid(),labels).to(inputs.device)
+            out2 = criterion(model(input_var - r*var).sigmoid(),labels).to(inputs.device)
+            est += (r*out1).detach()
+            est -= (r*out2).detach()
+        #update input
+        input_var = input_var + alpha*est.sign()
+        input_var = clipping(input_var, inputs, eps)
 
-  return input_var
+    return input_var
 
 def deepfool(model,inputs,labels,eps=0.05, iters = 10):
-  input_var = inputs
+    input_var = inputs
 
-  for i in range(iters):
-    input_var.requires_grad = True
-    tmp = torch.zeros(input_var.shape).to(inputs.device)
-    outputs = model(input_var)
-    inverse_pred = outputs.sigmoid() < 0.5
-    if torch.all(torch.eq(inverse_pred,labels)):
-      return input_var
-    outputs.backward()
-    input_var = input_var - 1.02*input_var.grad*outputs/LA.norm(input_var.grad)**2
-    input_var = clipping(input_var,inputs,eps)
+    for i in range(iters):
+        input_var.requires_grad = True
 
-  return input_var
+        outputs = model(input_var)
+        inverse_pred = outputs.sigmoid() < 0.5
+        if torch.all(torch.eq(inverse_pred,labels)):
+            return input_var
+        outputs.backward()
+        input_var = input_var - 1.02*input_var.grad*outputs/LA.norm(input_var.grad)**2
+        input_var = clipping(input_var,inputs,eps)
+
+    return input_var
 
 # https://github.com/cg563/simple-blackbox-attack/blob/master/simba.py
 def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
-  dims = inputs.view(1,-1).size(1)
-  perm = torch.randperm(dims).to(inputs.device)
-  last_prob = model(inputs).sigmoid()
-  last_prob = last_prob if labels == 1 else 1 - last_prob
-  print(labels)
-  for i in range(iters):
-    diff = torch.zeros(dims).to(inputs.device)
-    diff[perm[i]] = eps
-    left_prob = model((inputs-diff.view(inputs.size())).clamp(-2.12,2.59)).sigmoid()
-    left_prob = left_prob if labels == 1 else 1 - left_prob
+    dims = inputs.view(1,-1).size(1)
+    perm = torch.randperm(dims).to(inputs.device)
+    last_prob = model(inputs).sigmoid()
+    last_prob = last_prob if labels == 1 else 1 - last_prob
+    for i in range(iters):
+        diff = torch.zeros(dims).to(inputs.device)
+        diff[perm[i]] = eps
+        left_prob = model((inputs-diff.view(inputs.size())).clamp(-2.12,2.59)).sigmoid()
+        left_prob = left_prob if labels == 1 else 1 - left_prob
     
-    if left_prob < last_prob:
-      inputs = (inputs-diff.view(inputs.size())).clamp(-2.12,2.59)
-      last_prob = left_prob
-    
-    else:
-      right_prob = model((inputs+diff.view(inputs.size())).clamp(-2.12,2.59)).sigmoid()
-      right_prob = right_prob if labels == 1 else 1 - right_prob
-      if right_prob < last_prob:
-        inputs = (inputs+diff.view(inputs.size())).clamp(-2.12,2.59)
-        last_prob = right_prob
-    
-    if i % 1000 == 0 :
-      outputs = model(inputs).sigmoid()
-      #if all predicts are wrong: stop
-      inverse_pred = outputs < 0.5
-      if torch.all(torch.eq(inverse_pred,labels)):
-        return inputs
-  return inputs 
+        if left_prob < last_prob:
+            inputs = (inputs-diff.view(inputs.size())).clamp(-2.12,2.59)
+            last_prob = left_prob
+            
+        else:
+            right_prob = model((inputs+diff.view(inputs.size())).clamp(-2.12,2.59)).sigmoid()
+            right_prob = right_prob if labels == 1 else 1 - right_prob
+            if right_prob < last_prob:
+                inputs = (inputs+diff.view(inputs.size())).clamp(-2.12,2.59)
+                last_prob = right_prob
+            
+        if i % 1000 == 0 :
+            outputs = model(inputs).sigmoid()
+            #if all predicts are wrong: stop
+            inverse_pred = outputs < 0.5
+            if torch.all(torch.eq(inverse_pred,labels)):
+                return inputs
+    return inputs 
