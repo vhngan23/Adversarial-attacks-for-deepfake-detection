@@ -3,13 +3,12 @@ import torch.optim as optim
 from torch import linalg as LA
 
 
-def fgs(model, input, target, eps=0.01):
+def fgs(model, input, target, eps=0.05):
 
     model.eval()
     model.zero_grad()
     input_var = torch.autograd.Variable(input, requires_grad=True)
     output = model(input_var).sigmoid()
-
 
     criterion = torch.nn.BCELoss()
     loss = criterion(output, target)
