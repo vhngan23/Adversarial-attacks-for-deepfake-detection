@@ -59,21 +59,30 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
             input = attacks.fgs(model,input,label)
         elif att == 'bce_iter':
             input = attacks.basic_iterative_attack(model,input,label)
+        elif att == 'bce_iter_tran':
+            input = attacks.basic_iterative_attack(model,input,label,trans=True)
         elif att == 'lin_iter':
-            input = attacks.white_box_attack(model,input,label)
+            input = attacks.white_box_attack(model,input,label)        
+        elif att == 'lin_iter_tran':
+            input = attacks.white_box_attack(model,input,label,trans=True)
         elif att == 'deepfool':
             input = attacks.deepfool(model,input,label)
         elif att == 'nes':
             input = attacks.black_box_NES(model,input,label)
+        elif att == 'nes_tran':
+            input = attacks.black_box_NES(model,input,label,trans=True)
         elif att == 'simba':
             input = attacks.simba(model,input,label)
         else:
             print("""please input one of these the attack method:
             fgs
             bce_iter
+            bce_iter_tran
             lin_iter
+            lin_iter_tran
             deepfool
             nes
+            nes_tran
             simba
             """)
             return
@@ -82,7 +91,7 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
         save_image(input, out_path+'/{}.png'.format(i) )
         i += 1
         ssim_mean += ssim_val.item()
-        print(ssim_val)
+        print('pass')
 
     ssim_mean = ssim_mean/i
     print(f'{att} SSIM: {ssim_mean}')
@@ -135,21 +144,30 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
             input = attacks.fgs(model,input,label)
         elif att == 'bce_iter':
             input = attacks.basic_iterative_attack(model,input,label)
-        elif att == 'linear_iter':
+        elif att == 'bce_iter_tran':
+            input = attacks.basic_iterative_attack(model,input,label,trans=True)
+        elif att == 'lin_iter':
             input = attacks.white_box_attack(model,input,label)
+        elif att == 'lin_iter_tran':
+            input = attacks.white_box_attack(model,input,label,trans=True)
         elif att == 'deepfool':
             input = attacks.deepfool(model,input,label)
         elif att == 'nes':
             input = attacks.black_box_NES(model,input,label)
+        elif att == 'nes_tran':
+            input = attacks.black_box_NES(model,input,label,trans=True)
         elif att == 'simba':
             input = attacks.simba(model,input,label)
         else:
             print("""please input one of these the attack method:
             fgs
             bce_iter
-            linear_iter
+            bce_iter_tran
+            lin_iter
+            lin_iter_tran
             deepfool
             nes
+            nes_tran
             simba
             """)
         input = img_denorm(input).unsqueeze(0)

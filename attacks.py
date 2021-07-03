@@ -1,7 +1,13 @@
 import torch 
 import torch.optim as optim
 from torch import linalg as LA
+from torchvision import transforms
+from torchvision.transforms.transforms import LinearTransformation
 
+data_transform = transforms.Compose([
+    transforms.GaussianBlur(3),
+    transforms.Lambda(lambda x: x + torch.randn(x.shape)*0.005)
+])
 
 def fgs(model, input, target, eps=0.05):
 
@@ -27,11 +33,7 @@ def clipping(adv, og, eps):
     tmp = torch.where(adv < og - eps, low, adv)
     return tmp.detach()
 
-def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10) :
-
-    if iters == 0 :
-        # The paper said min(eps + 4, 1.25*eps) is used as iterations
-        iters = int(min(eps*255 + 4, 1.25*eps*255))    
+def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, trans = False) : 
 
     criterion = torch.nn.BCELoss()
     input_var = torch.autograd.Variable(inputs, requires_grad=True)
@@ -45,19 +47,22 @@ def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=
         if torch.all(torch.eq(inverse_pred,labels)):
             return input_var
 
-    #calculate grad 
-    model.zero_grad()
-    loss = criterion(outputs, labels)
-    loss.backward()
-  
-    #update input
-    input_var = input_var + alpha*input_var.grad.sign()
-    input_var = clipping(input_var, inputs, eps)
+        #calculate grad 
+        model.zero_grad()
+        if not trans: 
+            loss = criterion(outputs, labels)
+        else:
+            loss = criterion(model(data_transform(input_var)).sigmoid(),labels)
+    
+        loss.backward()
+        #update input
+        input_var = input_var + alpha*input_var.grad.sign()
+        input_var = clipping(input_var, inputs, eps)
 
     return input_var
 
 
-def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10) :
+def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, trans = False) :
 
     criterion = lambda input,target : (input*(target*2-1)).mean()
     input_var = inputs
@@ -72,8 +77,11 @@ def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10) :
             return input_var
     
         #calculate grad 
-        model.zero_grad()
-        loss = criterion(outputs, labels)
+        if not trans: 
+            loss = criterion(outputs, labels)
+        else:
+            loss = criterion(model(data_transform(input_var)).sigmoid(),labels)
+    
         loss.backward()
         
         #update input
@@ -133,7 +141,7 @@ def universal_attack(model, inputs, labels, eps = 0.12,alpha=0.01, iters = 100):
 
 #         decision = (model(mid_img)>0.5)==label
 
-def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25, iters=100 ):
+def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25, iters=100, trans = False ):
     model.eval()
     criterion = torch.nn.BCELoss()
     input_var = inputs
@@ -151,8 +159,14 @@ def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25,
         #estimate the gradient
         for j in range(n):
             r = torch.randn(input_var.shape).to(inputs.device)
-            out1 = criterion(model(input_var + r*var).sigmoid(),labels).to(inputs.device)
-            out2 = criterion(model(input_var - r*var).sigmoid(),labels).to(inputs.device)
+            if not trans:
+                right = input_var + r*var
+                left = input_var - r*var
+            else:
+                right = data_transform(input_var+ r*var)
+                left = data_transform(input_var- r*var)
+            out1 = criterion(model(right).sigmoid(),labels).to(inputs.device)
+            out2 = criterion(model(left).sigmoid(),labels).to(inputs.device)
             est += (r*out1).detach()
             est -= (r*out2).detach()
         #update input
