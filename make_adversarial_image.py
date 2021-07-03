@@ -91,7 +91,7 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
         save_image(input, out_path+'/{}.png'.format(i) )
         i += 1
         ssim_mean += ssim_val.item()
-        print('pass')
+
 
     ssim_mean = ssim_mean/i
     print(f'{att} SSIM: {ssim_mean}')
