@@ -172,7 +172,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
             """)
         input = img_denorm(input).unsqueeze(0)
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), input, data_range=1, size_average=True)
-        save_image(input, out_path+'/{}.png'.format(i) )
+
         i += 1
         ssim_mean += ssim_val.item()
 
