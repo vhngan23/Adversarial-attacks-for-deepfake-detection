@@ -6,7 +6,7 @@ from torchvision.transforms.transforms import LinearTransformation
 
 data_transform = transforms.Compose([
     transforms.GaussianBlur(3),
-    transforms.Lambda(lambda x: x + torch.randn(x.shape)*0.005)
+    transforms.Lambda(lambda x: x + torch.randn(x.shape).to(x.device)*0.005)
 ])
 
 def fgs(model, input, target, eps=0.05):
