@@ -5,7 +5,7 @@ from torchvision import transforms, datasets
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 import numpy as np
 import models 
-
+import typer
 
 testTransforms = transforms.Compose([
         transforms.Resize(224),
@@ -15,7 +15,9 @@ testTransforms = transforms.Compose([
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+app = typer.Typer()
 
+@app.command()
 def test(model, path):
     if model == 'baseline':
         model = models.SimpleConvModel()
@@ -62,3 +64,7 @@ def test(model, path):
     acc = accuracy_score(y_true, y_pred )
 
     print(' Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f} '.format( acc,pre,rec))
+
+
+if __name__ == "__main__":
+    app()
