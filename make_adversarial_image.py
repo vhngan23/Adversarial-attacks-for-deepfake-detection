@@ -53,27 +53,28 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
     model.eval()
     ssim_mean = 0
     i = 0
+    qsum = 0
     for inputs in dataloader:
         inputs = inputs.to(device)
         raw = inputs
         if att == 'fgs':
-            inputs = attacks.fgs(model,inputs,label)
+            inputs,qcount = attacks.fgs(model,inputs,label)
         elif att == 'bce_iter':
-            inputs = attacks.basic_iterative_attack(model,inputs,label)
+            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label)
         elif att == 'bce_iter_tran':
-            inputs = attacks.basic_iterative_attack(model,inputs,label,trans=True)
+            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label,trans=True)
         elif att == 'lin_iter':
-            inputs = attacks.white_box_attack(model,inputs,label)        
+            inputs,qcount = attacks.white_box_attack(model,inputs,label)        
         elif att == 'lin_iter_tran':
-            inputs = attacks.white_box_attack(model,inputs,label,trans=True)
+            inputs,qcount = attacks.white_box_attack(model,inputs,label,trans=True)
         elif att == 'deepfool':
-            inputs = attacks.deepfool(model,inputs,label)
+            inputs,qcount = attacks.deepfool(model,inputs,label)
         elif att == 'nes':
-            inputs = attacks.black_box_NES(model,inputs,label)
+            inputs,qcount = attacks.black_box_NES(model,inputs,label)
         elif att == 'nes_tran':
-            inputs = attacks.black_box_NES(model,inputs,label,trans=True)
+            inputs,qcount = attacks.black_box_NES(model,inputs,label,trans=True)
         elif att == 'simba':
-            inputs = attacks.simba(model,inputs,label)
+            inputs,qcount = attacks.simba(model,inputs,label)
         else:
             print("""please input one of these the attack method:
             fgs
@@ -87,6 +88,8 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
             simba
             """)
             return
+        qsum += qcount 
+        print(qcount)
         inputs = img_denorm(inputs).unsqueeze(0)
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), inputs, data_range=1, size_average=True)
         save_image(inputs, out_path+'/{}.png'.format(i) )
@@ -95,7 +98,7 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
 
 
     ssim_mean = ssim_mean/i
-    print(f'{att} SSIM: {ssim_mean}')
+    print(f'{att} SSIM: {ssim_mean} Querry count: {qsum/i}')
         
 
 @app.command()
@@ -138,28 +141,29 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
     i = 0
     fcount = 0
     rcount = 0
+    qsum = 0
     for inputs, label in dataloader:
         inputs = inputs.to(device)
         label = label.unsqueeze(1).float().to(device)
         raw = inputs
         if att == 'fgs':
-            inputs = attacks.fgs(model,inputs,label)
+            inputs,qcount = attacks.fgs(model,inputs,label)
         elif att == 'bce_iter':
-            inputs = attacks.basic_iterative_attack(model,inputs,label)
+            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label)
         elif att == 'bce_iter_tran':
-            inputs = attacks.basic_iterative_attack(model,inputs,label,trans=True)
+            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label,trans=True)
         elif att == 'lin_iter':
-            inputs = attacks.white_box_attack(model,inputs,label)
+            inputs,qcount = attacks.white_box_attack(model,inputs,label)
         elif att == 'lin_iter_tran':
-            inputs = attacks.white_box_attack(model,inputs,label,trans=True)
+            inputs,qcount = attacks.white_box_attack(model,inputs,label,trans=True)
         elif att == 'deepfool':
-            inputs = attacks.deepfool(model,inputs,label)
+            inputs,qcount = attacks.deepfool(model,inputs,label)
         elif att == 'nes':
-            inputs = attacks.black_box_NES(model,inputs,label)
+            inputs,qcount = attacks.black_box_NES(model,inputs,label)
         elif att == 'nes_tran':
-            inputs = attacks.black_box_NES(model,inputs,label,trans=True)
+            inputs,qcount = attacks.black_box_NES(model,inputs,label,trans=True)
         elif att == 'simba':
-            inputs = attacks.simba(model,inputs,label)
+            inputs,qcount = attacks.simba(model,inputs,label)
         else:
             print("""please input one of these the attack method:
             fgs
@@ -174,7 +178,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
             """)
         inputs = img_denorm(inputs).unsqueeze(0)
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), inputs, data_range=1, size_average=True)
-
+        qsum += qcount 
         i += 1
         ssim_mean += ssim_val.item()
 
@@ -185,7 +189,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
             save_image(inputs, out_path+'/real/{}.png'.format(rcount))
             rcount += 1 
     ssim_mean = ssim_mean/i
-    print(f'{att} SSIM: {ssim_mean}')
+    print(f'{att} SSIM: {ssim_mean} Querry count: {qsum/i}')
 
 
 def img_denorm(img):

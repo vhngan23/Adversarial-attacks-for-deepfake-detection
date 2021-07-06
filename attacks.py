@@ -23,7 +23,7 @@ def fgs(model, input, target, eps=0.05):
     grad_sign = input_var.grad.sign()
 
 
-    return input_var + eps * grad_sign 
+    return input_var + eps * grad_sign , 1
 
 def clipping(adv, og, eps):
     up = torch.clamp(og+eps,max=2.59)
@@ -44,8 +44,9 @@ def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=
         outputs = model(input_var).sigmoid()
         #if all predicts are wrong: stop
         inverse_pred = outputs < 0.5
+
         if torch.all(torch.eq(inverse_pred,labels)):
-            return input_var
+            return input_var, i 
 
         #calculate grad 
         model.zero_grad()
@@ -59,7 +60,7 @@ def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=
         input_var = input_var + alpha*input_var.grad.sign()
         input_var = clipping(input_var, inputs, eps)
 
-    return input_var
+    return input_var, i 
 
 
 def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, trans = False) :
@@ -74,7 +75,7 @@ def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, tr
         inverse_pred = outputs < 0.5
     
         if torch.all(torch.eq(inverse_pred,labels)):
-            return input_var
+            return input_var, i 
     
         #calculate grad 
         if not trans: 
@@ -88,7 +89,7 @@ def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, tr
         input_var = input_var - alpha*input_var.grad.sign()
         input_var = clipping(input_var, inputs, eps)
 
-    return input_var
+    return input_var, i 
 
 
 def universal_attack(model, inputs, labels, eps = 0.12,alpha=0.01, iters = 100):
@@ -145,6 +146,7 @@ def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25,
     model.eval()
     criterion = torch.nn.BCELoss()
     input_var = inputs
+    qcount = 0
     for i in range(iters):
         est = torch.zeros(input_var.shape).to(inputs.device)
 
@@ -154,7 +156,7 @@ def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25,
 
         if torch.all(torch.eq(inverse_pred,labels)):
 
-            return inputs
+            return inputs, qcount
 
         #estimate the gradient
         for j in range(n):
@@ -169,11 +171,12 @@ def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25,
             out2 = criterion(model(left).sigmoid(),labels).to(inputs.device)
             est += (r*out1).detach()
             est -= (r*out2).detach()
+            qcount +=2
         #update input
         input_var = input_var + alpha*est.sign()
         input_var = clipping(input_var, inputs, eps)
 
-    return input_var
+    return input_var, qcount
 
 def deepfool(model,inputs,labels,eps=0.05, iters = 10):
     input_var = inputs
@@ -184,12 +187,12 @@ def deepfool(model,inputs,labels,eps=0.05, iters = 10):
         outputs = model(input_var)
         inverse_pred = outputs.sigmoid() < 0.5
         if torch.all(torch.eq(inverse_pred,labels)):
-            return input_var
+            return input_var, i 
         outputs.backward()
         input_var = input_var - 1.02*input_var.grad*outputs/LA.norm(input_var.grad)**2
         input_var = clipping(input_var,inputs,eps)
 
-    return input_var
+    return input_var, i 
 
 # https://github.com/cg563/simple-blackbox-attack/blob/master/simba.py
 def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
@@ -197,10 +200,12 @@ def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
     perm = torch.randperm(dims).to(inputs.device)
     last_prob = model(inputs).sigmoid()
     last_prob = last_prob if labels == 1 else 1 - last_prob
+    qcount = 0
     for i in range(iters):
         diff = torch.zeros(dims).to(inputs.device)
         diff[perm[i]] = eps
         left_prob = model((inputs-diff.view(inputs.size())).clamp(-2.12,2.59)).sigmoid()
+        qcount +=1
         left_prob = left_prob if labels == 1 else 1 - left_prob
     
         if left_prob < last_prob:
@@ -209,6 +214,7 @@ def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
             
         else:
             right_prob = model((inputs+diff.view(inputs.size())).clamp(-2.12,2.59)).sigmoid()
+            qcount +=1
             right_prob = right_prob if labels == 1 else 1 - right_prob
             if right_prob < last_prob:
                 inputs = (inputs+diff.view(inputs.size())).clamp(-2.12,2.59)
@@ -219,5 +225,5 @@ def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
             #if all predicts are wrong: stop
             inverse_pred = outputs < 0.5
             if torch.all(torch.eq(inverse_pred,labels)):
-                return inputs
-    return inputs 
+                return inputs , qcount
+    return inputs , qcount
