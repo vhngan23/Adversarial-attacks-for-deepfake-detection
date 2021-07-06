@@ -1,3 +1,5 @@
+from torchvision.transforms.functional import gaussian_blur
+from torchvision.transforms.transforms import RandomApply, RandomHorizontalFlip
 import typer
 import torch 
 from torchvision import transforms, datasets
@@ -17,6 +19,8 @@ app = typer.Typer()
 data_transforms = {
     'train': transforms.Compose([
         transforms.Resize(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomApply([transforms.GaussianBlur(3)]),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
@@ -29,7 +33,7 @@ data_transforms = {
 
 @app.command()
 def train(data_dir,save_path,model,num_epochs, saved_state_dict = None):
-
+    num_epochs = int(num_epochs)
     if model == 'baseline':
         model = models.SimpleConvModel()
     elif model == 'xception':
@@ -136,3 +140,5 @@ def train(data_dir,save_path,model,num_epochs, saved_state_dict = None):
     model.load_state_dict(best_model_wts)
     torch.save(model.state_dict(), save_path)
 
+if __name__ == "__main__":
+    app()
