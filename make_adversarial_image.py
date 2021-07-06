@@ -98,7 +98,7 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
 
 
     ssim_mean = ssim_mean/i
-    print(f'{att} SSIM: {ssim_mean} Querry count: {qsum/i}')
+    print(f'{att} SSIM: {ssim_mean} Query count: {qsum/i}')
         
 
 @app.command()
@@ -189,7 +189,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
             save_image(inputs, out_path+'/real/{}.png'.format(rcount))
             rcount += 1 
     ssim_mean = ssim_mean/i
-    print(f'{att} SSIM: {ssim_mean} Querry count: {qsum/i}')
+    print(f'{att} SSIM: {ssim_mean} Query count: {qsum/i}')
 
 
 def img_denorm(img):
