@@ -156,7 +156,7 @@ def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25,
 
         if torch.all(torch.eq(inverse_pred,labels)):
 
-            return inputs, qcount
+            return input_var, qcount
 
         #estimate the gradient
         for j in range(n):
