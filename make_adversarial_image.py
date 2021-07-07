@@ -12,23 +12,41 @@ import os
 
 app = typer.Typer()
 
-@app.command()
-def single_dir(path, label,out_path,att,model = 'baseline'):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    if label == 'fake': label = 0
-    elif label == 'real': label = 1
-    label = torch.FloatTensor([[label]])
-    label.unsqueeze(1).to(device)
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
-    data_transforms = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    dataset = SingleDirDataset(path, data_transforms)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,shuffle=True, num_workers=1)
+def use_attack(att, inputs , model, label):
+    if att == 'fgs':
+        inputs,qcount = attacks.fgs(model,inputs,label)
+    elif att == 'bce_iter':
+        inputs,qcount = attacks.basic_iterative_attack(model,inputs,label)
+    elif att == 'bce_iter_tran':
+        inputs,qcount = attacks.basic_iterative_attack(model,inputs,label,trans=True)
+    elif att == 'lin_iter':
+        inputs,qcount = attacks.white_box_attack(model,inputs,label)        
+    elif att == 'lin_iter_tran':
+        inputs,qcount = attacks.white_box_attack(model,inputs,label,trans=True)
+    elif att == 'deepfool':
+        inputs,qcount = attacks.deepfool(model,inputs,label)
+    elif att == 'nes':
+        inputs,qcount = attacks.black_box_NES(model,inputs,label)
+    elif att == 'nes_tran':
+        inputs,qcount = attacks.black_box_NES(model,inputs,label,trans=True)
+    elif att == 'simba':
+        inputs,qcount = attacks.simba(model,inputs,label)
+    else:
+        print("""please input one of these the attack method:
+        fgs
+        bce_iter
+        bce_iter_tran
+        lin_iter
+        lin_iter_tran
+        deepfool
+        nes
+        nes_tran
+        simba
+        """)
+        exit()
+    return inputs, qcount
+
+def get_model(model):
     if model == 'baseline':
         model = models.SimpleConvModel()
         model.load_state_dict(torch.load('SimpleConv.pth',map_location=torch.device('cpu')))
@@ -49,7 +67,26 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
             effnet_b3
             effnet_v2s
         """)
-    model.to(device)
+    return model
+
+@app.command()
+def single_dir(path, label,out_path,att,model = 'baseline'):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if label == 'fake': label = 0
+    elif label == 'real': label = 1
+    label = torch.FloatTensor([[label]])
+    label.unsqueeze(1).to(device)
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    data_transforms = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize(224),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    dataset = SingleDirDataset(path, data_transforms)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,shuffle=True, num_workers=1)
+    model = get_model(model).to(device)
     model.eval()
     ssim_mean = 0
     i = 0
@@ -57,37 +94,7 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
     for inputs in dataloader:
         inputs = inputs.to(device)
         raw = inputs
-        if att == 'fgs':
-            inputs,qcount = attacks.fgs(model,inputs,label)
-        elif att == 'bce_iter':
-            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label)
-        elif att == 'bce_iter_tran':
-            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label,trans=True)
-        elif att == 'lin_iter':
-            inputs,qcount = attacks.white_box_attack(model,inputs,label)        
-        elif att == 'lin_iter_tran':
-            inputs,qcount = attacks.white_box_attack(model,inputs,label,trans=True)
-        elif att == 'deepfool':
-            inputs,qcount = attacks.deepfool(model,inputs,label)
-        elif att == 'nes':
-            inputs,qcount = attacks.black_box_NES(model,inputs,label)
-        elif att == 'nes_tran':
-            inputs,qcount = attacks.black_box_NES(model,inputs,label,trans=True)
-        elif att == 'simba':
-            inputs,qcount = attacks.simba(model,inputs,label)
-        else:
-            print("""please input one of these the attack method:
-            fgs
-            bce_iter
-            bce_iter_tran
-            lin_iter
-            lin_iter_tran
-            deepfool
-            nes
-            nes_tran
-            simba
-            """)
-            return
+        inputs, qcount = use_attack(att,inputs,model,label)
         qsum += qcount 
         print(qcount)
         inputs = img_denorm(inputs).unsqueeze(0)
@@ -115,27 +122,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
     ])
     dataset = fakeNrealDataset(path, data_transforms)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,shuffle=True, num_workers=1)
-    if model == 'baseline':
-        model = models.SimpleConvModel()
-        model.load_state_dict(torch.load('SimpleConv.pth',map_location=torch.device('cpu')))
-    elif model == 'xception':
-        model = models.Xception()
-        model.load_state_dict(torch.load('Xception.pth',map_location=torch.device('cpu')))
-    elif model == 'effnet_b3':
-        model = models.EfficientNet('b3')
-        model.load_state_dict(torch.load('EfficientNetB3.pth',map_location=torch.device('cpu')))
-    elif model == 'effnet_v2s':
-        model = models.effnetv2_s()
-        model.load_state_dict(torch.load('efficientnet_v2_s.pth',map_location=torch.device('cpu')))
-    else:
-        print("""
-            Please input the model name:
-            baseline
-            xception
-            effnet_b3
-            effnet_v2s
-        """)
-    model.to(device)
+    model = get_model(model).to(device)
     model.eval()
     ssim_mean = 0
     i = 0
@@ -146,36 +133,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
         inputs = inputs.to(device)
         label = label.unsqueeze(1).float().to(device)
         raw = inputs
-        if att == 'fgs':
-            inputs,qcount = attacks.fgs(model,inputs,label)
-        elif att == 'bce_iter':
-            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label)
-        elif att == 'bce_iter_tran':
-            inputs,qcount = attacks.basic_iterative_attack(model,inputs,label,trans=True)
-        elif att == 'lin_iter':
-            inputs,qcount = attacks.white_box_attack(model,inputs,label)
-        elif att == 'lin_iter_tran':
-            inputs,qcount = attacks.white_box_attack(model,inputs,label,trans=True)
-        elif att == 'deepfool':
-            inputs,qcount = attacks.deepfool(model,inputs,label)
-        elif att == 'nes':
-            inputs,qcount = attacks.black_box_NES(model,inputs,label)
-        elif att == 'nes_tran':
-            inputs,qcount = attacks.black_box_NES(model,inputs,label,trans=True)
-        elif att == 'simba':
-            inputs,qcount = attacks.simba(model,inputs,label)
-        else:
-            print("""please input one of these the attack method:
-            fgs
-            bce_iter
-            bce_iter_tran
-            lin_iter
-            lin_iter_tran
-            deepfool
-            nes
-            nes_tran
-            simba
-            """)
+        inputs, qcount = use_attack(att,inputs,model,label)
         inputs = img_denorm(inputs).unsqueeze(0)
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), inputs, data_range=1, size_average=True)
         qsum += qcount 
