@@ -33,7 +33,7 @@ def clipping(adv, og, eps):
     tmp = torch.where(adv < og - eps, low, adv)
     return tmp.detach()
 
-def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, trans = False) : 
+def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.02, iters=4, trans = False) : 
 
     criterion = torch.nn.BCELoss()
     input_var = torch.autograd.Variable(inputs, requires_grad=True)
@@ -43,10 +43,10 @@ def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=
 
         outputs = model(input_var).sigmoid()
         #if all predicts are wrong: stop
-        inverse_pred = outputs < 0.5
+        # inverse_pred = outputs < 0.5
 
-        if torch.all(torch.eq(inverse_pred,labels)):
-            return input_var, i 
+        # if torch.all(torch.eq(inverse_pred,labels)):
+        #     return input_var, i 
 
         #calculate grad 
         model.zero_grad()
@@ -63,7 +63,7 @@ def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=
     return input_var, i 
 
 
-def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, trans = False) :
+def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.02, iters=4, trans = False) :
 
     criterion = lambda input,target : (input*(target*2-1)).mean()
     input_var = inputs
@@ -72,10 +72,10 @@ def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.05, iters=10, tr
         input_var.requires_grad=True
         outputs = model(input_var)
         #if all predicts are wrong: stop
-        inverse_pred = outputs < 0.5
+        # inverse_pred = outputs < 0.5
     
-        if torch.all(torch.eq(inverse_pred,labels)):
-            return input_var, i 
+        # if torch.all(torch.eq(inverse_pred,labels)):
+        #     return input_var, i 
     
         #calculate grad 
         if not trans: 
@@ -142,7 +142,7 @@ def universal_attack(model, inputs, labels, eps = 0.12,alpha=0.01, iters = 100):
 
 #         decision = (model(mid_img)>0.5)==label
 
-def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.05, var = 0.01, n=25, iters=100, trans = False ):
+def black_box_NES(model, inputs, labels,eps=0.05,alpha = 0.02, var = 0.01, n=25, iters=100, trans = False ):
     model.eval()
     criterion = torch.nn.BCELoss()
     input_var = inputs
