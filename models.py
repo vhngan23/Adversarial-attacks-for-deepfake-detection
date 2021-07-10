@@ -279,7 +279,6 @@ class EfficientNet(nn.Module):
   def __init__(self, version, num_classes=1):
     super(EfficientNet,self).__init__()
     width_factor, depth_factor, dropout_rate = self.calculate_factors(version)
-    print(width_factor,depth_factor)
     last_channels = ceil(1280*width_factor)
     self.pool = nn.AdaptiveAvgPool2d(1)
     self.features = self.create_features(width_factor,depth_factor,last_channels)
