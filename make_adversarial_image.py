@@ -72,6 +72,7 @@ def get_model(model):
 @app.command()
 def single_dir(path, label,out_path,att,model = 'baseline'):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model_name = model
     if label == 'fake': label = 0
     elif label == 'real': label = 1
     label = torch.FloatTensor([[label]])
@@ -105,7 +106,7 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
 
 
     ssim_mean = ssim_mean/i
-    print(f'{att} SSIM: {ssim_mean*100} Query count: {qsum/i}')
+    print(f'Target model: {model_name}, Attack: {att} SSIM: {ssim_mean*100} Query count: {qsum/i}')
         
 
 @app.command()
@@ -114,7 +115,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
     if not os.path.exists(out_path):
         os.makedirs(os.path.join(out_path,'fake'))
         os.makedirs(os.path.join(out_path,'real'))
-
+    model_name = model
     data_transforms = transforms.Compose([
         transforms.Resize(224),
         transforms.ToTensor(),
@@ -147,7 +148,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
             save_image(inputs, out_path+'/real/{}.png'.format(rcount))
             rcount += 1 
     ssim_mean = ssim_mean/i
-    print(f'{att} SSIM: {ssim_mean * 100} Query count: {qsum/i}')
+    print(f'Target model: {model_name}, Attack: {att} SSIM: {ssim_mean * 100} Query count: {qsum/i}')
 
 
 def img_denorm(img):
