@@ -63,7 +63,7 @@ def test(model, path):
     rec = recall_score(y_true,y_pred )
     acc = accuracy_score(y_true, y_pred )
 
-    print(' Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f} '.format( acc,pre,rec))
+    print(' Accuracy: {:.2f}%, Precision: {:.2f}%, Recall: {:.2f}% '.format( acc*100,pre*100,rec*100))
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ def basic_iterative_attack(model, inputs, labels, eps = 0.05, alpha=0.02, iters=
         input_var = input_var + alpha*input_var.grad.sign()
         input_var = clipping(input_var, inputs, eps)
 
-    return input_var, i 
+    return input_var, i +1
 
 
 def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.02, iters=4, trans = False) :
@@ -89,7 +89,7 @@ def white_box_attack(model, inputs, labels, eps = 0.05, alpha=0.02, iters=4, tra
         input_var = input_var - alpha*input_var.grad.sign()
         input_var = clipping(input_var, inputs, eps)
 
-    return input_var, i 
+    return input_var, i +1
 
 
 def universal_attack(model, inputs, labels, eps = 0.12,alpha=0.01, iters = 100):
@@ -189,10 +189,10 @@ def deepfool(model,inputs,labels,eps=0.05, iters = 10):
         if torch.all(torch.eq(inverse_pred,labels)):
             return input_var, i 
         outputs.backward()
-        input_var = input_var - 1.02*input_var.grad*outputs/LA.norm(input_var.grad)**2
+        input_var = input_var - 1.1*input_var.grad*outputs/LA.norm(input_var.grad)**2
         input_var = clipping(input_var,inputs,eps)
 
-    return input_var, i 
+    return input_var, i +1
 
 # https://github.com/cg563/simple-blackbox-attack/blob/master/simba.py
 def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
