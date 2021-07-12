@@ -129,26 +129,26 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
     i = 0
     fcount = 0
     rcount = 0
-    qsum = 0
+    qmean = 0
     for inputs, label in dataloader:
         inputs = inputs.to(device)
         label = label.unsqueeze(1).float().to(device)
         raw = inputs
+        i += 1
         inputs, qcount = use_attack(att,inputs,model,label)
         inputs = img_denorm(inputs).unsqueeze(0)
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), inputs, data_range=1, size_average=True)
-        qsum += qcount 
-        i += 1
-        ssim_mean += ssim_val.item()
-
+        qmean = qmean + (qcount-qmean)/i
+        ssim_mean += ssim_mean + (ssim_val.item()-ssim_mean)/i
+        # if i%1000 == 0:
+        #     print(f"SSIM: {ssim_mean*100}, Q mean: {qmean}")
         if label.item() == 0:
             save_image(inputs, out_path+'/fake/{}.png'.format(fcount))
             fcount += 1
         else: 
             save_image(inputs, out_path+'/real/{}.png'.format(rcount))
             rcount += 1 
-    ssim_mean = ssim_mean/i
-    print(f'Target model: {model_name}, Attack: {att} SSIM: {ssim_mean * 100} Query count: {qsum/i}')
+    print(f'Target model: {model_name}, Attack: {att} SSIM: {ssim_mean * 100} Query count: {qmean}')
 
 
 def img_denorm(img):
