@@ -102,10 +102,10 @@ def single_dir(path, label,out_path,att,model = 'baseline'):
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), inputs, data_range=1, size_average=True)
         save_image(inputs, out_path+'/{}.png'.format(i) )
         i += 1
-        ssim_mean += ssim_val.item()
 
+        ssim_mean = ssim_mean + (ssim_val.item()-ssim_mean)/i
+        print(ssim_mean)
 
-    ssim_mean = ssim_mean/i
     print(f'Target model: {model_name}, Attack: {att} SSIM: {ssim_mean*100} Query count: {qsum/i}')
         
 
@@ -139,7 +139,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
         inputs = img_denorm(inputs).unsqueeze(0)
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), inputs, data_range=1, size_average=True)
         qmean = qmean + (qcount-qmean)/i
-        ssim_mean += ssim_mean + (ssim_val.item()-ssim_mean)/i
+        ssim_mean = ssim_mean + (ssim_val.item()-ssim_mean)/i
         # if i%1000 == 0:
         #     print(f"SSIM: {ssim_mean*100}, Q mean: {qmean}")
         if label.item() == 0:
@@ -148,7 +148,7 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
         else: 
             save_image(inputs, out_path+'/real/{}.png'.format(rcount))
             rcount += 1 
-    print(f'Target model: {model_name}, Attack: {att} SSIM: {ssim_mean * 100} Query count: {qmean}')
+    print(f'Target model: {model_name}, Attack: {att} SSIM: {ssim_mean*100 } Query count: {qmean}')
 
 
 def img_denorm(img):
