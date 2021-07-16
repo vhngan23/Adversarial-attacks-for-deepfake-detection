@@ -220,7 +220,7 @@ def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
                 inputs = (inputs+diff.view(inputs.size())).clamp(-2.12,2.59)
                 last_prob = right_prob
             
-        if i % 50 == 0 :
+        if i % 1000 == 0 :
             outputs = model(inputs).sigmoid()
             #if all predicts are wrong: stop
             inverse_pred = outputs < 0.5
