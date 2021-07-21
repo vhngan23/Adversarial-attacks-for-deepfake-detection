@@ -194,7 +194,6 @@ def deepfool(model,inputs,labels,eps=0.05, iters = 10):
 
     return input_var, i +1
 
-# https://github.com/cg563/simple-blackbox-attack/blob/master/simba.py
 def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
     dims = inputs.view(1,-1).size(1)
     perm = torch.randperm(dims).to(inputs.device)
@@ -219,6 +218,7 @@ def simba(model, inputs, labels, eps= 0.2 , iters = 10000):
             if right_prob < last_prob:
                 inputs = (inputs+diff.view(inputs.size())).clamp(-2.12,2.59)
                 last_prob = right_prob
+
             
         if i % 1200 == 0 :
             outputs = model(inputs).sigmoid()

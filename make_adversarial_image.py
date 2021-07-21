@@ -140,8 +140,8 @@ def fakeNrealdir(path,out_path,att,model = 'baseline'):
         ssim_val = ssim( img_denorm(raw).unsqueeze(0), inputs, data_range=1, size_average=True)
         qmean = qmean + (qcount-qmean)/i
         ssim_mean = ssim_mean + (ssim_val.item()-ssim_mean)/i
-        if i%5 == 0:
-            print(f"SSIM: {ssim_mean*100}, Q mean: {qmean}")
+        # if i%5 == 0:
+        #     print(f"SSIM: {ssim_mean*100}, Q mean: {qmean}")
         if label.item() == 0:
             save_image(inputs, out_path+'/fake/{}.png'.format(fcount))
             fcount += 1
